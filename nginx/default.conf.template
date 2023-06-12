@@ -1,0 +1,17 @@
+server {
+  
+  listen 80;
+  #listen 443 ssl;
+  server_tokens off;
+  server_name ${hostname};
+  #ssl_certificate ${cert};
+  #ssl_protocols TLSv1.2 TLSv1.3;
+  #ssl_certificate_key ${key};
+
+    location / {
+       server_tokens off;
+       include uwsgi_params;
+       uwsgi_pass python:8084;
+       }
+
+}

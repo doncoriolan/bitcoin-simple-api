@@ -1,0 +1,78 @@
+version: "3.9"
+networks:
+  frontend:
+    ipam:
+      config:
+        - subnet: ${subnet}
+services:
+  nginx:
+    image: nginx
+    container_name: nginx
+    networks:
+      frontend:
+        ipv4_address: ${nginx_ip}
+    env_file:
+      - .env
+    ports:
+      - "443:443"
+      - "80:80"
+    environment:
+      - hostname=${hostname}
+    volumes:
+      - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template
+      #- .env:/etc/nginx/.env
+
+  python:
+    restart: always
+    container_name: python
+    build: 
+      context: ./python
+      dockerfile: Dockerfile
+      args:
+        - rpcuser=${rpcuser}
+    networks:
+      frontend:
+        ipv4_address: ${python_ip}
+    expose:
+      - 8084
+    volumes:
+      - ./python:/usr/src/app
+    environment:
+      - FLASK_DEBUG=1
+      - rpcuser=${rpcuser}
+      - rpcport=${rpcport}
+      - rpcpass=${rpcpass}
+      - btc_ip=${btc_ip}
+      - api_key=${api_key}
+  
+  bitcoin:
+    restart: always
+    container_name: bitcoin
+    build:
+      context: ./bitcoin
+      dockerfile: Dockerfile
+      args:
+        - rpcuser=${rpcuser}
+        - rpcauth=${rpcauth}
+        - rpcallowip=${python_ip}
+        - rpcport=${rpcport}
+        - rpcbind=${btc_ip}
+        - network=${network}
+    environment:
+      - rpcuser=${rpcuser}
+      - rpcauth=${rpcauth}
+      - rpcallowip=${python_ip}
+      - rpcport=${rpcport}
+      - rpcbind=${btc_ip}
+      - network=${network}
+    networks:
+      frontend:
+        ipv4_address: ${btc_ip}
+    expose:
+      - ${rpcport}
+    volumes:
+      - pruned_blockchain:/home/${rpcuser}/.bitcoin
+
+
+volumes:
+  pruned_blockchain:
